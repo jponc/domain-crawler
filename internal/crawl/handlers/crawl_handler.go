@@ -37,7 +37,7 @@ func (h *crawlHandler) Crawl(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		errResp := errs.ErrorResponse{Error: "failed to decode request body"}
-		json.NewEncoder(w).Encode(errResp)
+		_ = json.NewEncoder(w).Encode(errResp)
 		return
 	}
 
@@ -49,7 +49,7 @@ func (h *crawlHandler) Crawl(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		errResp := errs.ErrorResponse{Error: err.Error()}
-		json.NewEncoder(w).Encode(errResp)
+		_ = json.NewEncoder(w).Encode(errResp)
 		return
 	}
 
