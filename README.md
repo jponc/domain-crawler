@@ -2,11 +2,11 @@
 
 ## Description
 
-This is a domain crawler service which accepts a list of url's to crawl and keywords to search for.
+This is a domain crawler service which accepts a list of url's to crawl and keywords to search for. 
 
 ## OpenAPI Specification
 
-The OpenAPI specification can be found in the `api/openapi/api.yaml` file.
+The OpenAPI specification can be found in the `api/openapi/api.yaml` file. This manages the API documentation and the request/response schema. I've also integrated the OpenAPI specification to do request body validation.
 
 ## Running Locally
 
@@ -19,18 +19,25 @@ make start-local
 ### Docker & Docker Compose
 
 ```
+# You can update the environment variables injected in docker-compose.yml file.
+
 make start-local-docker
+
 ```
 
-You can update the environment variables injected in docker-compose.yml file.
 
 ## Environment Variables
 
 ```
-PORT - The port the server will listen on
-EXTRACTOR_CONCURRENT_LIMIT - The number of concurrent requests the extractor will make
-RATE_LIMIT_RPM - The rate limit configured for the service
+PORT - The port the server will listen on.
+EXTRACTOR_CONCURRENT_LIMIT - The number of concurrent requests the extractor will make.
+RATE_LIMIT_RPM - The rate limit configured for the service.
 ```
+
+## Concurrency
+
+This project uses Go's `errgroup` to manage concurrency.
+The number of concurrent requests can be configured using the `EXTRACTOR_CONCURRENT_LIMIT` environment variable.
 
 ## Rate Limiting
 
@@ -39,7 +46,9 @@ This can be configured using the `RATE_LIMIT_RPM` environment variable.
 
 ## Cache
 
-The service uses an in-memory cache to store the HTML document response. The cache is not persisted and is cleared on every restart.
+The service uses a simple in-memory cache to store the HTML document response.
+The cache is not persisted and is cleared on every restart.
+Have decided to not implement TTL for the cache.
 
 ## CI
 

@@ -61,10 +61,10 @@ func main() {
 	crawlService := services.NewCrawlService(extractorClient, config.ExtractorConcurrentLimit)
 
 	// Setup handlers
-	crawHandler := handlers.NewCrawlHandler(crawlService)
+	crawlHandler := handlers.NewCrawlHandler(crawlService)
 
 	// Setup routes
-	r.Post("/crawl", crawHandler.Crawl)
+	r.Post("/crawl", crawlHandler.Crawl)
 
 	// Start server
 	addr := fmt.Sprintf(":%s", config.Port)
