@@ -3,7 +3,7 @@ package extractor
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 
@@ -98,7 +98,7 @@ func (c *client) fetchHTML(ctx context.Context, url string) (string, error) {
 	}
 
 	// Read all the data from the ReadCloser
-	data, err := ioutil.ReadAll(res.Body)
+	data, err := io.ReadAll(res.Body)
 	if err != nil {
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
