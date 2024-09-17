@@ -1,0 +1,10 @@
+services:
+  domain-crawler-service:
+    build:
+      context: .
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - EXTRACTOR_CONCURRENT_LIMIT=2
+      - RATE_LIMIT_RPM=10
