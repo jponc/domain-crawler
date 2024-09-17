@@ -118,6 +118,49 @@ func TestCrawlHandler_Crawl(t *testing.T) {
 				}`,
 		},
 		{
+			name: "removes duplicate urls before sending to crawl service",
+			requestBody: `
+				{
+					"urls": ["https://example.com", "https://example.com", "https://example.com", "https://example.com"],
+					"keywords": ["example"]
+				}`,
+			mockCrawlService: &mockCrawlService{
+				crawlFn: func(ctx context.Context, urls []string, keywords []string) ([]services.SuccessCrawlResult, []services.ErrorCrawlResult, error) {
+					require.Len(t, urls, 1)
+					require.Equal(t, []string{"https://example.com"}, urls)
+
+					return []services.SuccessCrawlResult{
+						{
+							URL:              "https://example.com",
+							Title:            "Title",
+							MetaDescriptions: []string{"Meta Description 1", "Meta Description 2"},
+							Links:            []string{"https://link1.com", "https://link2.com"},
+							KeywordCounts: map[string]int{
+								"keyword1": 1,
+								"keyword2": 2,
+							},
+						},
+					}, nil, nil
+				},
+			},
+			expectedStatusCode: http.StatusOK,
+			expectedResponseBody: `
+				{
+					"results": [
+						{
+							"url": "https://example.com",
+							"title": "Title",
+							"meta_descriptions": ["Meta Description 1", "Meta Description 2"],
+							"links": ["https://link1.com", "https://link2.com"],
+							"keyword_counts": {
+								"keyword1": 1,
+								"keyword2": 2
+							}
+						}
+					]
+				}`,
+		},
+		{
 			name: "returns 200 when crawl service returns success and error results",
 			requestBody: `
 				{
@@ -204,7 +247,7 @@ func TestCrawlHandler_Crawl(t *testing.T) {
 
 			require.Equal(t, tt.expectedStatusCode, w.Code)
 			fmt.Println(w.Body.String())
-			jsonassert.New(t).Assertf(w.Body.String(), tt.expectedResponseBody)
+			jsonassert.New(t).Assertf(w.Body.String(), "%s", tt.expectedResponseBody)
 		})
 	}
 }

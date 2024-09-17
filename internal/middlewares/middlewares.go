@@ -21,7 +21,7 @@ func OpenAPIValidatorMiddleware(doc *openapi3.T) func(http.Handler) http.Handler
 				response, _ := json.Marshal(&errs.ErrorResponse{Error: message})
 
 				// Write the Response
-				w.Write(response)
+				_, _ = w.Write(response)
 			},
 		},
 	)

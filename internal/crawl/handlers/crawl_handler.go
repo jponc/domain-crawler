@@ -7,6 +7,7 @@ import (
 
 	"github.com/jponc/domain-crawler/internal/crawl/services"
 	"github.com/jponc/domain-crawler/internal/errs"
+	"github.com/jponc/domain-crawler/internal/utils"
 )
 
 type crawlService interface {
@@ -36,16 +37,19 @@ func (h *crawlHandler) Crawl(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		errResp := errs.ErrorResponse{Error: "failed to decode request body"}
-		json.NewEncoder(w).Encode(errResp)
+		_ = json.NewEncoder(w).Encode(errResp)
 		return
 	}
 
+	// Remove duplicate urls if any
+	uniqueURLs := utils.RemoveDuplicates(reqBody.URLs)
+
 	// Crawl the URLs
-	successCrawlResults, errorCrawlResults, err := h.crawlService.Crawl(ctx, reqBody.URLs, reqBody.Keywords)
+	successCrawlResults, errorCrawlResults, err := h.crawlService.Crawl(ctx, uniqueURLs, reqBody.Keywords)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		errResp := errs.ErrorResponse{Error: err.Error()}
-		json.NewEncoder(w).Encode(errResp)
+		_ = json.NewEncoder(w).Encode(errResp)
 		return
 	}
 
@@ -62,5 +66,5 @@ func (h *crawlHandler) Crawl(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(respBody)
+	_ = json.NewEncoder(w).Encode(respBody)
 }
