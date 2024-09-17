@@ -40,3 +40,24 @@ This can be configured using the `RATE_LIMIT_RPM` environment variable.
 ## Cache
 
 The service uses an in-memory cache to store the results of the data extraction.
+
+## CI
+
+The CI pipeline is configured using GitHub Actions.
+
+This runs the tests and linters on every push to the repository.
+
+## Tests
+
+```
+make tests
+```
+
+## Linting
+
+```
+brew install golangci-lint
+brew upgrade golangci-lint
+
+make lint
+```

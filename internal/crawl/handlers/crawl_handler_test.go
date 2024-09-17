@@ -247,7 +247,7 @@ func TestCrawlHandler_Crawl(t *testing.T) {
 
 			require.Equal(t, tt.expectedStatusCode, w.Code)
 			fmt.Println(w.Body.String())
-			jsonassert.New(t).Assertf(w.Body.String(), tt.expectedResponseBody)
+			jsonassert.New(t).Assertf(w.Body.String(), "%s", tt.expectedResponseBody)
 		})
 	}
 }

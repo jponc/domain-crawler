@@ -26,5 +26,5 @@ jobs:
         run: go mod download
 
       - name: Run tests
-        run: make run-tests
+        run: make tests
 

@@ -1,4 +1,4 @@
-.PHONY: start-local start-local-docker run-tests
+.PHONY: start-local start-local-docker tests
 
 install:
 	go mod download
@@ -12,5 +12,8 @@ start-local-docker:
 	# This always rebuilds the docker image and runs the container
 	docker compose up --build
 
-run-tests:
+tests:
 	go test ./... -v
+
+lint:
+	golangci-lint run

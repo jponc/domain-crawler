@@ -69,5 +69,8 @@ func main() {
 	addr := fmt.Sprintf(":%s", config.Port)
 	log.Info().Msgf("listening on %s", addr)
 
-	http.ListenAndServe(addr, r)
+	err = http.ListenAndServe(addr, r)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to start server")
+	}
 }
