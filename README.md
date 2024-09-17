@@ -39,18 +39,18 @@ This can be configured using the `RATE_LIMIT_RPM` environment variable.
 
 ## Cache
 
-The service uses an in-memory cache to store the results of the data extraction.
+The service uses an in-memory cache to store the HTML document response. The cache is not persisted and is cleared on every restart.
 
 ## CI
 
 The CI pipeline is configured using GitHub Actions.
 
-This runs the tests and linters on every push to the repository.
+This runs the tests and linting on every push to the repository.
 
 ## Tests
 
 ```
-make tests
+make test
 ```
 
 ## Linting
@@ -61,3 +61,8 @@ brew upgrade golangci-lint
 
 make lint
 ```
+
+## Assumptions
+
+1. Cache key - I'm caching the entire HTML document returned by the URL. I didn't cache the `ExtractResult` because different keywords can be used for the same URL. The only caveat here is that the cache footprint can go big since we're caching the entire HTML document.
+2. Rate limiting - I'm using a simple rate limiter which resets every minute.

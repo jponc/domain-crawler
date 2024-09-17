@@ -3,6 +3,7 @@ package extractor
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -12,8 +13,8 @@ import (
 )
 
 type cache interface {
-	Get(url string) (*ExtractResult, bool)
-	Set(url string, result *ExtractResult)
+	Get(k string) (string, bool)
+	Set(k, v string)
 }
 
 type client struct {
@@ -31,25 +32,14 @@ func NewExtractorClient(httpClient *http.Client, resultCache cache) *client {
 }
 
 func (c *client) Extract(ctx context.Context, url string, keywords []string) (*ExtractResult, error) {
-	// Check cache if available
-	if cachedResult, exists := c.resultCache.Get(url); exists {
-		c.logger.Info().Str("url", url).Msg("Returning cached result")
-		return cachedResult, nil
-	}
-
-	c.logger.Info().Str("url", url).Msg("Fetching data from origin")
-	res, err := c.httpClient.Get(url)
+	html, err := c.fetchHTML(ctx, url)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get url: %w", err)
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status code: %d %s", res.StatusCode, res.Status)
+		return nil, fmt.Errorf("failed to fetch html: %w", err)
 	}
 
 	// Parse HTML doc
-	doc, err := goquery.NewDocumentFromReader(res.Body)
+	reader := strings.NewReader(html)
+	doc, err := goquery.NewDocumentFromReader(reader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse html: %w", err)
 	}
@@ -85,11 +75,39 @@ func (c *client) Extract(ctx context.Context, url string, keywords []string) (*E
 		KeywordCounts:    keywordCounts,
 	}
 
-	// Store result to cache
-	c.resultCache.Set(url, &result)
-
 	// Return result
 	return &result, nil
+}
+
+func (c *client) fetchHTML(ctx context.Context, url string) (string, error) {
+	// Check cache if available
+	if cachedHTML, exists := c.resultCache.Get(url); exists {
+		c.logger.Info().Str("url", url).Msg("Returning cached HTML")
+		return cachedHTML, nil
+	}
+
+	c.logger.Info().Str("url", url).Msg("Fetching HTML from origin")
+	res, err := c.httpClient.Get(url)
+	if err != nil {
+		return "", fmt.Errorf("failed to get url: %w", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("unexpected status code: %s", res.Status)
+	}
+
+	// Read all the data from the ReadCloser
+	data, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Store result to cache
+	html := string(data)
+	c.resultCache.Set(url, html)
+
+	return html, nil
 }
 
 func getKeywordCounts(doc *goquery.Document, keywords []string) KeywordCounts {

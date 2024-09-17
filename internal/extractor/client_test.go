@@ -23,22 +23,22 @@ func (errorReader) Read(p []byte) (n int, err error) {
 	return 0, io.ErrUnexpectedEOF
 }
 
-type mockExtractorCache struct {
-	getFn func(url string) (*extractor.ExtractResult, bool)
-	setFn func(url string, result *extractor.ExtractResult)
+type mockCache struct {
+	getFn func(k string) (string, bool)
+	setFn func(k, v string)
 }
 
-func (m *mockExtractorCache) Get(url string) (*extractor.ExtractResult, bool) {
+func (m *mockCache) Get(k string) (string, bool) {
 	if m != nil && m.getFn != nil {
-		return m.getFn(url)
+		return m.getFn(k)
 	}
 
-	return nil, false
+	return "", false
 }
 
-func (m *mockExtractorCache) Set(url string, result *extractor.ExtractResult) {
+func (m *mockCache) Set(k, v string) {
 	if m != nil && m.setFn != nil {
-		m.setFn(url, result)
+		m.setFn(k, v)
 	}
 }
 
@@ -48,7 +48,7 @@ func TestClient_Extract(t *testing.T) {
 		url                string
 		keywords           []string
 		roundTripFunc      roundTripFunc
-		mockExtractorCache *mockExtractorCache
+		mockExtractorCache *mockCache
 		expectedError      string
 		expectedResult     *extractor.ExtractResult
 	}{
@@ -56,26 +56,32 @@ func TestClient_Extract(t *testing.T) {
 			name:     "returns cached result when available",
 			url:      "http://example.com",
 			keywords: []string{"keyword1", "keyword2"},
-			mockExtractorCache: &mockExtractorCache{
-				getFn: func(url string) (*extractor.ExtractResult, bool) {
-					return &extractor.ExtractResult{
-						Title:            "Example Domain",
-						MetaDescriptions: []string{"This is an example domain"},
-						Links:            []string{"http://example.com/link1", "http://example.com/link2"},
-						KeywordCounts: map[string]int{
-							"keyword1": 1,
-							"keyword2": 2,
-						},
-					}, true
+			mockExtractorCache: &mockCache{
+				getFn: func(k string) (string, bool) {
+					return `
+						<html>
+							<head>
+								<title>Example Domain</title>
+								<meta name="description" content="This is the first meta description." />
+								<meta name="description" content="This is the second meta description, which might be ignored by search engines." />
+							</head>
+							<body>
+								<span>keyword1 keyword1 keyword2</span>
+
+								<a href="http://example.com/link1">Link 1</a>
+								<a href="http://example.com/link2">Link 2</a>
+							</body>
+						</html>`, true
 				},
 			},
 			expectedResult: &extractor.ExtractResult{
+				URL:              "http://example.com",
 				Title:            "Example Domain",
-				MetaDescriptions: []string{"This is an example domain"},
+				MetaDescriptions: []string{"This is the first meta description.", "This is the second meta description, which might be ignored by search engines."},
 				Links:            []string{"http://example.com/link1", "http://example.com/link2"},
 				KeywordCounts: map[string]int{
-					"keyword1": 1,
-					"keyword2": 2,
+					"keyword1": 2,
+					"keyword2": 1,
 				},
 			},
 		},
@@ -86,7 +92,7 @@ func TestClient_Extract(t *testing.T) {
 			roundTripFunc: func(r *http.Request) (*http.Response, error) {
 				return nil, http.ErrHandlerTimeout
 			},
-			expectedError: "failed to get url: Get \"http://example.com\": http: Handler timeout",
+			expectedError: "failed to fetch html: failed to get url: Get \"http://example.com\": http: Handler timeout",
 		},
 		{
 			name:     "returns err when unexpected status code",
@@ -95,10 +101,10 @@ func TestClient_Extract(t *testing.T) {
 			roundTripFunc: func(r *http.Request) (*http.Response, error) {
 				return &http.Response{
 					StatusCode: http.StatusNotFound,
-					Status:     "Not Found",
+					Status:     "404 Not Found",
 				}, nil
 			},
-			expectedError: "unexpected status code: 404 Not Found",
+			expectedError: "failed to fetch html: unexpected status code: 404 Not Found",
 		},
 		{
 			name:     "returns err when failed to parse html",
@@ -110,7 +116,7 @@ func TestClient_Extract(t *testing.T) {
 					Body:       io.NopCloser(errorReader{}),
 				}, nil
 			},
-			expectedError: "failed to parse html: unexpected EOF",
+			expectedError: "failed to fetch html: failed to read response body: unexpected EOF",
 		},
 		{
 			name: "returns result when successfully parsed the html body",

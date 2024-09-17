@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/httprate"
 	"github.com/jponc/domain-crawler/api/openapi"
+	"github.com/jponc/domain-crawler/internal/cache"
 	"github.com/jponc/domain-crawler/internal/config"
 	"github.com/jponc/domain-crawler/internal/crawl/handlers"
 	"github.com/jponc/domain-crawler/internal/crawl/services"
@@ -55,9 +56,9 @@ func main() {
 
 	// Setup dependencies
 	httpClient := &http.Client{}
-	extractorCache := extractor.NewExtractorCache()
-	extractorClient := extractor.NewExtractorClient(httpClient, extractorCache)
-	crawlService := services.NewCrawlService(extractorClient, 3)
+	inmemoryCache := cache.NewInMemoryCache()
+	extractorClient := extractor.NewExtractorClient(httpClient, inmemoryCache)
+	crawlService := services.NewCrawlService(extractorClient, config.ExtractorConcurrentLimit)
 
 	// Setup handlers
 	crawHandler := handlers.NewCrawlHandler(crawlService)
